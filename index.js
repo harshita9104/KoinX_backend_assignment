@@ -7,7 +7,7 @@ import cryptoRoutes from "./routes/cryptoRoutes.js";
 
 dotenv.config();
 
-connectDB();
+await connectDB();
 
 const app = express();
 
