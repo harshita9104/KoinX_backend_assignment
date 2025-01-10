@@ -1,7 +1,7 @@
-import { Schema, model } from 'mongoose';
+import { Schema, model } from "mongoose";
 
 const cryptoSchema = new Schema({
-  coinId: String, 
+  coinId: String,
   price: Number,
   marketCap: Number,
   change24h: Number,
@@ -11,5 +11,5 @@ const cryptoSchema = new Schema({
   },
 });
 
-const Crypto = model('Crypto', cryptoSchema);
+const Crypto = model("Crypto", cryptoSchema);
 export default Crypto;
