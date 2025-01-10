@@ -1,73 +1,96 @@
 import Crypto from "../models/cryptoModel.js";
 
 export const getStats = async (req, res) => {
-  const { coin } = req.query;
-
-  if (!coin) {
-    return res
-      .status(400)
-      .json({ error: "Please provide a coin name in the query parameter." });
-  }
-
-  const sanitizedCoin = coin.trim().toLowerCase();
-
   try {
-    const latestData = await Crypto.findOne({ coinId: sanitizedCoin }).sort({
-      timestamp: -1,
-    });
+    const { coin } = req.query;
 
-    if (!latestData) {
-      return res
-        .status(404)
-        .json({ error: `No data found for the coin: ${sanitizedCoin}` });
+    if (!coin) {
+      return res.status(400).json({
+        error: "Coin parameter is required",
+      });
     }
 
-    res.json({
+    const validCoins = ["bitcoin", "ethereum", "matic-network"];
+    const sanitizedCoin = coin.toLowerCase().trim();
+
+    if (!validCoins.includes(sanitizedCoin)) {
+      return res.status(400).json({
+        error: "Invalid coin. Must be bitcoin, ethereum, or matic-network",
+      });
+    }
+
+    const latestData = await Crypto.findOne(
+      { coinId: sanitizedCoin },
+      { price: 1, marketCap: 1, change24h: 1, _id: 0 }
+    ).sort({ timestamp: -1 });
+
+    if (!latestData) {
+      return res.status(404).json({
+        error: "No data found for the specified coin",
+      });
+    }
+
+    // Format response exactly as required
+    return res.json({
       price: latestData.price,
       marketCap: latestData.marketCap,
       "24hChange": latestData.change24h,
     });
   } catch (error) {
     console.error("Error in getStats:", error);
-    res.status(500).json({ error: "Server error while fetching crypto stats" });
+    return res.status(500).json({
+      error: "Internal server error",
+    });
   }
 };
 
 export const getDeviation = async (req, res) => {
-  const { coin } = req.query;
-
-  if (!coin) {
-    return res
-      .status(400)
-      .json({ error: "Please provide a coin name in the query parameter." });
-  }
-
-  const sanitizedCoin = coin.trim().toLowerCase();
-
   try {
-    const records = await Crypto.find({ coinId: sanitizedCoin })
-      .sort({ timestamp: -1 })
-      .limit(100)
-      .select("price");
+    const { coin } = req.query;
 
-    if (records.length === 0) {
-      return res
-        .status(404)
-        .json({ error: `No data found for the coin: ${sanitizedCoin}` });
+    if (!coin) {
+      return res.status(400).json({
+        error: "Coin parameter is required",
+      });
+    }
+
+    const validCoins = ["bitcoin", "ethereum", "matic-network"];
+    const sanitizedCoin = coin.toLowerCase().trim();
+
+    if (!validCoins.includes(sanitizedCoin)) {
+      return res.status(400).json({
+        error: "Invalid coin. Must be bitcoin, ethereum, or matic-network",
+      });
+    }
+
+    const records = await Crypto.find(
+      { coinId: sanitizedCoin },
+      { price: 1, _id: 0 }
+    )
+      .sort({ timestamp: -1 })
+      .limit(100);
+
+    if (!records.length) {
+      return res.status(404).json({
+        error: "No data found for the specified coin",
+      });
     }
 
     const prices = records.map((record) => record.price);
-    const mean = prices.reduce((acc, price) => acc + price, 0) / prices.length;
-    const squaredDiffs = prices.map((price) => Math.pow(price - mean, 2));
+    const mean = prices.reduce((sum, price) => sum + price, 0) / prices.length;
+    const squaredDifferences = prices.map((price) => Math.pow(price - mean, 2));
     const variance =
-      squaredDiffs.reduce((acc, diff) => acc + diff, 0) / prices.length;
+      squaredDifferences.reduce((sum, diff) => sum + diff, 0) / prices.length;
     const standardDeviation = Math.sqrt(variance);
 
-    res.json({ deviation: parseFloat(standardDeviation.toFixed(2)) });
+    // Format response exactly as required
+    return res.json({
+      deviation: Number(standardDeviation.toFixed(2)),
+    });
   } catch (error) {
     console.error("Error in getDeviation:", error);
-    res
-      .status(500)
-      .json({ error: "Server error while calculating standard deviation" });
+    return res.status(500).json({
+      error: "Internal server error",
+    });
   }
 };
