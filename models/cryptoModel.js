@@ -1,15 +1,30 @@
-import { Schema, model } from "mongoose";
+import mongoose from "mongoose";
 
-const cryptoSchema = new Schema({
-  coinId: String,
-  price: Number,
-  marketCap: Number,
-  change24h: Number,
+const cryptoSchema = new mongoose.Schema({
+  coinId: {
+    type: String,
+    required: true,
+    enum: ["bitcoin", "ethereum", "matic-network"],
+  },
+  price: {
+    type: Number,
+    required: true,
+  },
+  marketCap: {
+    type: Number,
+    required: true,
+  },
+  change24h: {
+    type: Number,
+    required: true,
+  },
   timestamp: {
     type: Date,
     default: Date.now,
   },
 });
 
-const Crypto = model("Crypto", cryptoSchema);
-export default Crypto;
+// Index for faster queries
+cryptoSchema.index({ coinId: 1, timestamp: -1 });
+
+export default mongoose.model("Crypto", cryptoSchema);
